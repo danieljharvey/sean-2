@@ -1,0 +1,10 @@
+{
+  "name": "sean-2",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "pscid:build": "spago build",
+    "pscid:test": "spago test"
+  }
+}
