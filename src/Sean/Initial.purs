@@ -23,6 +23,14 @@ initialStart
       , partLinks: singleton endingLink
       }
 
+emptyPart :: Part
+emptyPart 
+  = Part
+      { partKey: Key ""
+      , partText: StoryText ""
+      , partLinks: singleton endingLink
+      }
+
 initialEnding :: Ending
 initialEnding
   = Ending

@@ -8,3 +8,7 @@
 /.purs*
 /.psa*
 /.spago
+/.cache
+/dist
+
+public/index.js
