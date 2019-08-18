@@ -79,8 +79,9 @@ instance showEventError :: (Show a) => Show (EventError a) where
 ---
 _hasFocus ::
   forall rawType niceType e.
-  Getter' (PrismControl rawType niceType e) Boolean
-_hasFocus = _events <<< to (hasFocus)
+  PrismControl rawType niceType e ->
+  Boolean
+_hasFocus = hasFocus <<< view _events
   where
   hasFocus = foldl reducey false
     where
@@ -95,38 +96,32 @@ _hasFocus = _events <<< to (hasFocus)
 _hasBlurred ::
   forall rawType niceType e.
   Eq rawType =>
-  Getter' (PrismControl rawType niceType e) Boolean
-_hasBlurred =
-  _events
-    <<< to (isJust <<< find ((==) OnBlur))
+  PrismControl rawType niceType e -> Boolean
+_hasBlurred = isJust <<< find ((==) OnBlur) <<< view _events
 
 ---
 _hasHadFocus ::
   forall rawType niceType e.
   Eq rawType =>
-  Getter' (PrismControl rawType niceType e) Boolean
+  PrismControl rawType niceType e -> Boolean
 _hasHadFocus =
-  _events
-    <<< to (isJust <<< find ((==) OnFocus))
+  isJust <<< find ((==) OnFocus)
+    <<< view _events
 
 ---
-mostRecentValue ::
-  forall i e.
-  ControlEvents i ->
-  Either (EventError e) i
-mostRecentValue events = case unwrap $ foldMap Last (map onChangeOnly events) of
-  Just a -> Right a
-  Nothing -> Left NoValue
-  where
-  onChangeOnly = case _ of
-    OnChange a -> Just a
-    _ -> Nothing
-
 _mostRecentValue ::
   forall rawType niceType e.
-  Getter' (PrismControl rawType niceType e)
-    (Either (EventError e) rawType)
-_mostRecentValue = _events <<< to (mostRecentValue)
+  PrismControl rawType niceType e ->
+  Either (EventError e) rawType
+_mostRecentValue = mostRecentValue <<< view _events
+  where
+  mostRecentValue events = case unwrap $ foldMap Last (map onChangeOnly events) of
+    Just a -> Right a
+    Nothing -> Left NoValue
+    where
+    onChangeOnly = case _ of
+      OnChange a -> Just a
+      _ -> Nothing
 
 ---
 _lastGoodValue ::
@@ -162,15 +157,6 @@ tryDecode eitherFrom event = case event of
   _ -> Left NoValue
 
 ---
-getEitherOutput ::
-  forall i e a.
-  (i -> Either e a) ->
-  ControlEvents i ->
-  Either (EventError e) a
-getEitherOutput eitherFrom events = case mostRecentValue events of
-  Left e -> Left e
-  Right a -> wrapError (eitherFrom a)
-
 wrapError ::
   forall e a.
   Either e a ->
@@ -179,10 +165,13 @@ wrapError = left ValidationError
 
 _getEitherOutput ::
   forall rawType niceType e.
-  Getter' (PrismControl rawType niceType e) (Either (EventError e) niceType)
-_getEitherOutput = to outputGetter
+  PrismControl rawType niceType e ->
+  Either (EventError e) niceType
+_getEitherOutput a = getEitherOutput (view _eitherFrom a)
   where
-  outputGetter a = getEitherOutput (view _eitherFrom a) (view _events a)
+  getEitherOutput eitherFrom = case _mostRecentValue a of
+    Left e -> Left e
+    Right a' -> wrapError (eitherFrom a')
 
 ---
 createEmpty ::

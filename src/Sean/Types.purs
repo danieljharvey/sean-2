@@ -1,6 +1,7 @@
 module Sean.Types where
 
 import Prelude
+import Data.Either (Either(..))
 import Data.Lens (Lens')
 import Data.Lens.Index (ix)
 import Data.Lens.Iso.Newtype (_Newtype)
@@ -17,6 +18,13 @@ newtype Title
 newtype Key
   = Key String
 
+derive instance newtypeKey :: Newtype Key _
+
+toKey :: String -> Either PartError Key
+toKey s = case s of
+  "" -> Left EmptyKey
+  a -> Right (Key a)
+
 derive newtype instance eqKey :: Eq Key
 
 derive newtype instance ordKey :: Ord Key
@@ -24,8 +32,18 @@ derive newtype instance ordKey :: Ord Key
 newtype StoryText
   = StoryText String
 
+derive instance newtypeStoryText :: Newtype StoryText _
+
+toStoryText :: String -> Either PartError StoryText
+toStoryText s = case s of
+  "" -> Left EmptyKey
+  a -> Right (StoryText a)
+
 newtype LinkText
   = LinkText String
+
+data PartError
+  = EmptyKey
 
 ---
 newtype Link

@@ -5,7 +5,9 @@
   "license": "MIT",
   "scripts": {
     "pscid:build": "spago build",
-    "pscid:test": "spago test"
+    "pscid:test": "spago test",
+    "bundle:watch": "spago bundle-app --to public/index.js -w",
+    "parcel:watch": "parcel public/index.html"
   },
   "dependencies": {
     "parcel": "^1.12.3",

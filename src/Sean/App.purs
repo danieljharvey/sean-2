@@ -1,10 +1,7 @@
 module Sean.App where
 
-import Prelude
-import Effect.Console (log)
 import React.Basic (Component, JSX, StateUpdate(..), createComponent, make, runUpdate)
-import React.Basic.DOM as R
-import React.Basic.DOM.Events (capture_)
+import Sean.Controls.EditPart (editPart)
 
 component :: Component Props
 component = createComponent "App"
@@ -19,17 +16,11 @@ data Action
 app :: Props -> JSX
 app = make component { initialState, render }
   where
-  initialState = { counter: 0 }
+  initialState = {}
 
   update self = case _ of
-    Increment ->
-      UpdateAndSideEffects
-        (self.state { counter = self.state.counter + 1 }) \{ state } -> log $ "Count: " <> show state.counter
+    Increment -> NoUpdate
 
   send = runUpdate update
 
-  render self =
-    R.button
-      { onClick: capture_ $ send self Increment
-      , children: [ R.text (self.props.label <> ": " <> show self.state.counter) ]
-      }
+  render self = editPart {}
