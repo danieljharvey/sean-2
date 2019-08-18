@@ -1,10 +1,8 @@
 module Sean.Validate (PlayableStory, Problems(..), StoryError(..), validate) where
 
 import Prelude (pure, (<<<))
-
 import Data.Either (Either)
-import Data.NonEmpty (NonEmpty) 
-
+import Data.NonEmpty (NonEmpty)
 import Sean.Types
 
 -- the type of a validated Story
@@ -19,4 +17,3 @@ data StoryError
 
 validate :: Story -> Either Problems PlayableStory
 validate = pure <<< PlayableStory
-
