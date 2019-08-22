@@ -1,12 +1,13 @@
 module Sean.Controls.EditPart where
 
-import Prelude (not, ($), (<<<), (||))
-import Data.Either (isRight)
+import Prelude
+import Data.Either (isRight, Either(..))
 import Data.Newtype (unwrap)
 import Data.Traversable (traverse_)
 import Data.Tuple
+import Sean.Controls.EditLink
 import Sean.Data.FoldEvents as Fold
-import Sean.Types (toKey, toStoryText, unwrapLinks, wrapLinks)
+import Sean.Types
 import React.Basic (Component, JSX, StateUpdate(..), createComponent, make, runUpdate)
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture, capture_, targetValue)
@@ -20,7 +21,8 @@ type Props
 data Action
   = PartKeyChange (Fold.Event String)
   | PartTextChange (Fold.Event String)
-  | PartLinkChange (Fold.Event (Array (Tuple String String)))
+  | AddLink Link
+  | AddNewLink
 
 editPart ::
   Props ->
@@ -30,7 +32,8 @@ editPart = make component { initialState, render }
   initialState =
     { partKey: Fold.createEmpty unwrap toKey
     , partText: Fold.createEmpty unwrap toStoryText
-    , partLinks: Fold.createEmpty unwrapLinks wrapLinks
+    , partLinks: []
+    , addNewLink: true
     }
 
   update self = case _ of
@@ -40,22 +43,42 @@ editPart = make component { initialState, render }
     PartTextChange event ->
       Update
         (self.state { partText = Fold.log event (self.state.partText) })
-    PartLinkChange event -> 
+    AddLink link ->
       Update
-        (self.state { partLinks = Fold.log event (self.state.partLinks) })
+        ( self.state
+            { partLinks = self.state.partLinks <> [ link ]
+            , addNewLink = false
+            }
+        )
+    AddNewLink -> Update (self.state { addNewLink = false })
 
   send = runUpdate update
 
   render self =
     R.div
-      { children: [ partKey, partText ]
+      { children:
+        ( [ partKey
+          , partText
+          , partLinks
+          ]
+            <> if self.state.addNewLink then [ partLinksEdit ] else []
+        )
       }
     where
-    partKeyValid = isRight (Fold._getEitherOutput self.state.partKey) || (not (Fold._hasBlurred self.state.partKey))
+    submit link 
+      = send self (AddLink link)
+
+    partKeyValid =
+      isRight (Fold._getEitherOutput self.state.partKey)
+        || (not (Fold._hasBlurred self.state.partKey))
 
     partKey =
       R.div
-        { className: if partKeyValid then "box valid" else "box invalid"
+        { className:
+          if partKeyValid then
+            "box valid"
+          else
+            "box invalid"
         , children: [ R.text "Key: ", partKeyInput ]
         }
 
@@ -63,15 +86,25 @@ editPart = make component { initialState, render }
       R.input
         { onBlur: capture_ $ send self (PartKeyChange Fold.OnBlur)
         , onFocus: capture_ $ send self (PartKeyChange Fold.OnFocus)
-        , onChange: capture targetValue (\a -> traverse_ (send self <<< PartKeyChange <<< Fold.OnChange) a)
+        , onChange:
+          capture targetValue
+            ( \a ->
+                traverse_ (send self <<< PartKeyChange <<< Fold.OnChange) a
+            )
         , type: "text"
         }
 
-    partTextValid = isRight (Fold._getEitherOutput self.state.partText) || (not (Fold._hasBlurred self.state.partText))
+    partTextValid =
+      isRight (Fold._getEitherOutput self.state.partText)
+        || (not (Fold._hasBlurred self.state.partText))
 
     partText =
       R.div
-        { className: if partTextValid then "box valid" else "box invalid"
+        { className:
+          if partTextValid then
+            "box valid"
+          else
+            "box invalid"
         , children: [ R.text "Text: ", partTextInput ]
         }
 
@@ -79,6 +112,26 @@ editPart = make component { initialState, render }
       R.input
         { onBlur: capture_ $ send self (PartTextChange Fold.OnBlur)
         , onFocus: capture_ $ send self (PartTextChange Fold.OnFocus)
-        , onChange: capture targetValue (\a -> traverse_ (send self <<< PartTextChange <<< Fold.OnChange) a)
+        , onChange:
+          capture targetValue
+            ( \a ->
+                traverse_ (send self <<< PartTextChange <<< Fold.OnChange) a
+            )
         , type: "text"
+        }
+
+    partLinksEdit = editLink { submit }
+    
+    partLinksValid = true
+
+    partLinksInputs = map (const (editLink { submit })) self.state.partLinks
+
+    partLinks =
+      R.div
+        { className:
+          if partLinksValid then
+            "box valid"
+          else
+            "box invalid"
+        , children: [ R.text "Links: " ] <> partLinksInputs
         }

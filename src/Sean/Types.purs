@@ -17,6 +17,8 @@ import Data.Tuple
 newtype Title
   = Title String
 
+---
+
 newtype Key
   = Key String
 
@@ -25,11 +27,13 @@ derive instance newtypeKey :: Newtype Key _
 toKey :: String -> Either PartError Key
 toKey s = case s of
   "" -> Left EmptyKey
-  a -> Right (Key a)
+  a  -> Right (Key a)
 
 derive newtype instance eqKey :: Eq Key
 
 derive newtype instance ordKey :: Ord Key
+
+---
 
 newtype StoryText
   = StoryText String
@@ -39,16 +43,26 @@ derive instance newtypeStoryText :: Newtype StoryText _
 toStoryText :: String -> Either PartError StoryText
 toStoryText s = case s of
   "" -> Left EmptyStoryText
-  a -> Right (StoryText a)
+  a  -> Right (StoryText a)
+
+---
 
 newtype LinkText
   = LinkText String
 
 derive instance newtypeLinkText :: Newtype LinkText _
 
+toLinkText :: String -> Either PartError LinkText
+toLinkText s = case s of
+  "" -> Left EmptyLinkText
+  a  -> Right (LinkText a)
+
+---
+
 data PartError
   = EmptyKey
   | EmptyStoryText
+  | EmptyLinkText
   | NoLinks
 
 ---
@@ -59,23 +73,22 @@ newtype Link
   }
 
 unwrapLinks :: NonEmptyArray Link -> Array (Tuple String String)
-unwrapLinks =
-  map unwrapLink <<< toArray
+unwrapLinks = map unwrapLink <<< toArray
   where
-    unwrapLink (Link l)
-      = Tuple (unwrap l.linkKey) (unwrap l.linkText)
+  unwrapLink (Link l) = Tuple (unwrap l.linkKey) (unwrap l.linkText)
 
 wrapLinks :: Array (Tuple String String) -> Either PartError (NonEmptyArray Link)
 wrapLinks [] = Left NoLinks
-wrapLinks links
-  = case fromArray (map wrapLink links) of
-      Just as -> Right as
-      Nothing -> Left NoLinks
+
+wrapLinks links = case fromArray (map wrapLink links) of
+  Just as -> Right as
+  Nothing -> Left NoLinks
   where
-    wrapLink (Tuple key text)
-      = Link { linkKey: Key key
-             , linkText: LinkText text
-             }
+  wrapLink (Tuple key text) =
+    Link
+      { linkKey: Key key
+      , linkText: LinkText text
+      }
 
 derive instance newtypeLink :: Newtype Link _
 

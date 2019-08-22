@@ -1,9 +1,10 @@
 module Sean.Controls.EditLink where
 
-import Prelude (not, ($), (<<<), (||))
+import Prelude
 import Data.Either (isRight)
 import Data.Newtype (unwrap)
 import Data.Traversable (traverse_)
+import Effect
 import Sean.Data.FoldEvents as Fold
 import Sean.Types
 import React.Basic (Component, JSX, StateUpdate(..), createComponent, make, runUpdate)
@@ -14,20 +15,21 @@ component :: Component Props
 component = createComponent "EditLink"
 
 type Props
-  = {}
+  = { submit :: Link -> Effect Unit
+    }
 
 data Action
   = LinkKeyChange (Fold.Event String)
   | LinkTextChange (Fold.Event String)
 
-editPart ::
+editLink ::
   Props ->
   JSX
-editPart = make component { initialState, render }
+editLink = make component { initialState, render }
   where
   initialState =
     { linkKey: Fold.createEmpty unwrap toKey
-    , linkText: Fold.createEmpty unwrap toStoryText
+    , linkText: Fold.createEmpty unwrap toLinkText
     }
 
   update self = case _ of
@@ -42,14 +44,28 @@ editPart = make component { initialState, render }
 
   render self =
     R.div
-      { children: [ linkKey, linkText ]
+      { children: ([ linkKey, linkText ] <> submitButton)
       }
     where
-    linkKeyValid = isRight (Fold._getEitherOutput self.state.linkKey) || (not (Fold._hasBlurred self.state.linkKey))
+    submitButton =
+      if linkKeyValid && linkTextValid then
+        [ R.button
+            { children: [ R.text "Submit" ] }
+        ]
+      else
+        []
+
+    linkKeyValid = isRight (Fold._getEitherOutput self.state.linkKey)
+
+    showLinkKeyError = Fold._hasBlurred self.state.linkKey
 
     linkKey =
       R.div
-        { className: if linkKeyValid then "box valid" else "box invalid"
+        { className:
+          if linkKeyValid || not showLinkKeyError then
+            "box valid"
+          else
+            "box invalid"
         , children: [ R.text "Key: ", linkKeyInput ]
         }
 
@@ -61,11 +77,17 @@ editPart = make component { initialState, render }
         , type: "text"
         }
 
-    linkTextValid = isRight (Fold._getEitherOutput self.state.linkText) || (not (Fold._hasBlurred self.state.linkText))
+    linkTextValid = isRight (Fold._getEitherOutput self.state.linkText) 
+
+    showLinkTextError = Fold._hasBlurred self.state.linkText
 
     linkText =
       R.div
-        { className: if linkTextValid then "box valid" else "box invalid"
+        { className:
+          if linkTextValid || not showLinkTextError then
+            "box valid"
+          else
+            "box invalid"
         , children: [ R.text "Text: ", linkTextInput ]
         }
 
