@@ -4,8 +4,9 @@ import Prelude (not, ($), (<<<), (||))
 import Data.Either (isRight)
 import Data.Newtype (unwrap)
 import Data.Traversable (traverse_)
+import Data.Tuple
 import Sean.Data.FoldEvents as Fold
-import Sean.Types
+import Sean.Types (toKey, toStoryText, unwrapLinks, wrapLinks)
 import React.Basic (Component, JSX, StateUpdate(..), createComponent, make, runUpdate)
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture, capture_, targetValue)
@@ -19,6 +20,7 @@ type Props
 data Action
   = PartKeyChange (Fold.Event String)
   | PartTextChange (Fold.Event String)
+  | PartLinkChange (Fold.Event (Array (Tuple String String)))
 
 editPart ::
   Props ->
@@ -28,6 +30,7 @@ editPart = make component { initialState, render }
   initialState =
     { partKey: Fold.createEmpty unwrap toKey
     , partText: Fold.createEmpty unwrap toStoryText
+    , partLinks: Fold.createEmpty unwrapLinks wrapLinks
     }
 
   update self = case _ of
@@ -37,6 +40,9 @@ editPart = make component { initialState, render }
     PartTextChange event ->
       Update
         (self.state { partText = Fold.log event (self.state.partText) })
+    PartLinkChange event -> 
+      Update
+        (self.state { partLinks = Fold.log event (self.state.partLinks) })
 
   send = runUpdate update
 

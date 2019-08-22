@@ -2,7 +2,7 @@ module Sean.Initial where
 
 import Prelude (mempty)
 import Data.Map as Map
-import Data.NonEmpty (singleton)
+import Data.Array.NonEmpty (singleton)
 import Sean.Types
 
 initialStory :: Story

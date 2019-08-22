@@ -8,9 +8,11 @@ import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
 import Data.Lens.Traversal (Traversal', traversed)
 import Data.Map (Map)
-import Data.Newtype (class Newtype)
-import Data.NonEmpty (NonEmpty)
+import Data.Maybe
+import Data.Newtype (class Newtype, unwrap)
+import Data.Array.NonEmpty (fromArray, toArray, NonEmptyArray)
 import Data.Symbol (SProxy(..))
+import Data.Tuple
 
 newtype Title
   = Title String
@@ -36,14 +38,18 @@ derive instance newtypeStoryText :: Newtype StoryText _
 
 toStoryText :: String -> Either PartError StoryText
 toStoryText s = case s of
-  "" -> Left EmptyKey
+  "" -> Left EmptyStoryText
   a -> Right (StoryText a)
 
 newtype LinkText
   = LinkText String
 
+derive instance newtypeLinkText :: Newtype LinkText _
+
 data PartError
   = EmptyKey
+  | EmptyStoryText
+  | NoLinks
 
 ---
 newtype Link
@@ -51,6 +57,25 @@ newtype Link
   { linkKey :: Key
   , linkText :: LinkText
   }
+
+unwrapLinks :: NonEmptyArray Link -> Array (Tuple String String)
+unwrapLinks =
+  map unwrapLink <<< toArray
+  where
+    unwrapLink (Link l)
+      = Tuple (unwrap l.linkKey) (unwrap l.linkText)
+
+wrapLinks :: Array (Tuple String String) -> Either PartError (NonEmptyArray Link)
+wrapLinks [] = Left NoLinks
+wrapLinks links
+  = case fromArray (map wrapLink links) of
+      Just as -> Right as
+      Nothing -> Left NoLinks
+  where
+    wrapLink (Tuple key text)
+      = Link { linkKey: Key key
+             , linkText: LinkText text
+             }
 
 derive instance newtypeLink :: Newtype Link _
 
@@ -69,7 +94,7 @@ newtype Part
   = Part
   { partKey :: Key
   , partText :: StoryText
-  , partLinks :: NonEmpty Array Link
+  , partLinks :: NonEmptyArray Link
   }
 
 derive instance newtypePart :: Newtype Part _
